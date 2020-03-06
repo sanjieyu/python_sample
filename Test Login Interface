@@ -1,0 +1,47 @@
+
+# Author:Yi Sun(Tim) 2020-03-06
+
+'''
+1 简单测试登录接口，通过不同的输入来获取结果，然后用断言判断预期结果和实际结果是否相等
+2 各种添加test case的方法
+'''
+
+import unittest
+import requests
+
+class Logintest(unittest.TestCase):
+    def setUp(self):
+        self.url = "http://www.xxx.com/login,html"
+
+    def testLogin1(self):
+        form = {"username":18651669226,"password":123456}
+        r = requests.post(self.url,data = form)
+        self.assertEqual(r.text,"登录成功")
+
+    def testLogin2(self):
+        form = {"username": "", "password": 123456}
+        r = requests.post(self.url, data=form)
+        self.assertEqual(r.text, "用户名不能为空")
+
+# 第一种添加test case的方法
+def suite1():
+    loginTestCase = unittest.TestSuite()
+    loginTestCase.addTest(Logintest("testLogin1"))
+    loginTestCase.addTest(Logintest("testLogin2"))
+    return loginTestCase
+
+# 第二种添加test case的方法
+def suite2():
+    loginTestCase = unittest.makeSuite(Logintest,"test")
+    return loginTestCase
+
+# 多个测试套件其实还可以通过TestSuite组合在一起，变成一个新的测试套件
+def suite3():
+    loginTestCase = unittest.makeSuite(Logintest,"test")
+    loginoutTestCase = unittest.makeSuite(Logintest,"test")
+    alltest = unittest.TestSuite(loginTestCase,loginoutTestCase)
+    return alltest
+
+if __name__ == '__main__':
+    runner = unittest.TextTestRunner()
+    runner.run(suite1())
