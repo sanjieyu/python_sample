@@ -14,7 +14,7 @@ class Logintest(unittest.TestCase):
         self.url = "http://www.xxx.com/login,html"
 
     def testLogin1(self):
-        form = {"username":18651669226,"password":123456}
+        form = {"username":186xxxxxxx,"password":123456}
         r = requests.post(self.url,data = form)
         self.assertEqual(r.text,"登录成功")
 
