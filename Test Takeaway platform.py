@@ -8,7 +8,7 @@ import hashlib
 from datetime import *
 import json
 
-username = "18651669226"
+username = "186516692xx"
 password = hashlib.md5(b"123456").hexdigest()
 url = "http://www.xxx.com/ajax/user_login/"
 form_data = {"username":username,"password":password}
@@ -19,7 +19,7 @@ c = login_response.cookies
 def make_order():
     globals c
     url = "http://www.xxx.com/ajax/create_order/"
-    form_data = {"restaurant_id":18030056,"menu_items_total":"12.00","menu_item_data":"[{'id':00729,'p':'2','q':6}]","delivery_fee":"3.00"}
+    form_data = {"restaurant_id":1803xx56,"menu_items_total":"12.00","menu_item_data":"[{'id':00729,'p':'2','q':6}]","delivery_fee":"3.00"}
     make_response = requests.post(url,data=form_data,cookies=c)
     res = make_response.text
     id = json.loads(res)["order_id"]
