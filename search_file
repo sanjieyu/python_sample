@@ -1,0 +1,34 @@
+# Tim 2020-9-15
+
+'''
+1. 能在当前目录以及当前目录的所有子目录下查找文件名包括指定字符串的文件。
+2. 并打印出相对路径
+'''
+
+import os,re
+ 
+result = None
+result_list = []
+
+# 搜索字符串参数化
+def func(base_dir,search_str=None):
+    dir_list = os.listdir(base_dir)
+    # 如果搜索字符串为空，则返回当前目录下的所有文件和目录
+    if search_str == None:
+        return dir_list
+    for item in dir_list:
+        new_dir = os.path.join(base_dir,item)
+        # 过滤目录的匹配
+        if os.path.isfile(new_dir):
+            if re.search(search_str,item):
+                global result
+                # 返回相对路径
+                # os.curdir表示以相对路径的形式表示当前目录
+                # new_dir表示找到的文件的绝对路径，以当前目录的路径做分割，取出第二个
+                result = os.curdir + new_dir.split(os.getcwd())[1]
+                result_list.append(result)
+            else:
+                func(new_dir,search_str)
+    return result_list
+    
+print(func(os.getcwd(),'python'))
