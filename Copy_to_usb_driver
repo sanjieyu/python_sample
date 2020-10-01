@@ -1,0 +1,126 @@
+# Tim 2020-9-15
+
+'''
+将u盘所有的目录和文件拷进硬盘，自动在硬盘上创建一个文件夹来存储，还可以
+按照需要拷贝多份
+'''
+
+import os,shutil,sys
+import time,datetime,tkinter
+import tkinter.messagebox as mb
+
+class Udisk:
+    
+    def __init__(self,backup_path="C:/",udist_path="H:/",num=1):
+        self.backup_path = backup_path
+        self.udist_path = udist_path
+        self.num = num
+        
+    def resource_path(self,relative):
+        if hasatt(sys,"_MEIPASS"):
+            return os.path.join(sys._MEIPASS,relative)
+        return os.path.join(relative)
+        
+    def copy_GUI(self):
+        root = tkinter.TK()
+        root.geometry("400x260")
+        icopath = self.resource_path(r"favicon-20200915.ico")
+        if os.path.exists(icopath):
+            root.icobitmap(icopath)
+            
+        tkinter.Label(root,text="U盘盘符（如G:/)",font=("华文中宋",12)).grid(row=0)
+        tkinter.Label(root,text="拷贝目录（如D:/)",font=("华文中宋",12)).grid(row=1)
+        tkinter.Label(root,text="拷贝次数（如3)",font=("华文中宋",12)).grid(row=2)
+        
+        self.input_1 = tkinter.Entry(root)
+        self.input_2 = tkinter.Entry(root)
+        self.input_3 = tkinter.Entry(root)
+        
+        self.input_3.insert(10,"1")
+        
+        self.input_1.grid(row=0,column=1)
+        self.input_2.grid(row=1,column=1)
+        self.input_3.grid(row=2,column=1)
+        
+        tkinter.Button(root,text="ok",font=("Arial",12),background="MediumSlateBlue",command=
+        tkinter.Button(root,text="exit",font=("Arial",12),background="DarkGray",command=root.quit))
+        
+        tkinter.Label(root,text="使用说明:\n1.本软件适用于windows.\n2.默认以/作为目录分隔符")
+        
+        root.mainloop()
+        
+    def dirExists(self):
+        while True:
+            if os.path.exists(self.backup_path) == True:
+                print("copytree方法的路径%s不能是已存在的！" %self.backup_path)
+                now = datetime.datetime.now()
+                self.backup_path += now.strftime('%Y-%m-%d %H-%M-%S.%f')
+                print("程序自动将路径重命名为：%s" %self.backup_path)
+                return self.dirExists()
+            else:
+                break
+                
+    def copyUdisk(self):
+        try:
+            self.flag = True
+            file_list = []
+            content = os.listdir(self.udisk_path)
+            self.dirExists()
+        except FileNotFoundError:
+            print("对不起，U盘不存在，请插入U盘重试！")
+            return False
+        except PermissionError:
+            print("对不起，U盘不存在，请插入U盘重试！")
+            return False
+        else:
+            for item_1 in content:
+                if os.path.isfile(os.path.join(self.udisk_path,item_1)) == False:
+                    shutil.copytree(os.path.join(self.udisk_path,item_1),self.backup_path+"/"+item_1)
+                else:
+                    file_list.append(item_1)
+            for item_2 in file_list:
+                shutil.copy(os.path.join(self.udisk_path,item_2),self.backup_path+"/")
+            print("已拷贝至",self.backup_path)
+            return True
+            
+    def run(self):
+        time_1 = time.time()
+        try:
+            self.udisk_path = self.input_1.get()
+            self.backup_path = self.input_2.get()
+            self.num = self.input_3.get()
+            print(self.num)
+            standard_backup_path = ["C:/","c:/","D:/","d:/","E:/","e:/","F:/","f:/"]
+            standard_udisk_path = ["G:/","g:/","H:/","h:/"]
+            #下面这句没有写完
+            if self.backup_path[0:3] in standard_backup_path and self.udisk_path[:] in standard_udisk_path:
+                for i in range(int(self.num)):
+                    my_copy = Udisk(self.backup_path,self.udisk_path,self.num)
+                    if my_copy.copyUdisk() == False:
+                        mb.showerror("错误","对不起,U盘不存在，请插入U盘重试！")
+                        break
+                    elif my_copy.flag == False:
+                        mb.showerror("错误","对不起,U盘盘符不对应，请重试！")
+                        break
+                    elif i == (int(self.num) - 1):
+                        time_2 = time.time()
+                        total_time = time_2 - time_1
+                        output = “已拷贝成功"
+                        mb.showinfo("结果",output)
+                        mb.showinfo("共耗时",str(total_time)+"秒")
+            elif self.udisk_path[:] not in standard_udisk_path:
+                if self.udisk_path == "":
+                    mb.showerror("输入错误","U盘盘符不能为空，请重试！")
+                else:
+                    mb.showerror("输入错误","U盘盘符错误，请重试！")
+            elif self.backup_path[0:3] not in standard_backup_path:
+                if self.backup_path == "":
+                    mb.showerror("输入错误","拷贝目录不能为空，请重试！")
+                else:
+                    mb.showerror("输入错误","输入拷贝目录错误，请重试！")
+        except ValueError:
+            mb.showerror("输入错误","输入拷贝次数错误，请重试！")
+            
+     
+mycopy = Udisk()
+mycopy.copy_GUI()
