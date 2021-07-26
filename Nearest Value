@@ -1,0 +1,34 @@
+def nearest_value(values: set, one: int) -> int:
+    # your code here
+    result = []
+    min_num = []
+    listvalues = list(values)
+    if one in listvalues:
+        return one
+    else:
+        for n in range(len(listvalues)):
+            jian = abs(one - listvalues[n])
+            result.append(jian)
+        result_min = min(result)
+        for m in range(len(result)):
+            if result[m] == result_min:
+                min_num.append(listvalues[m])
+        if len(min_num) == 1:
+            return min_num[0]
+        else:
+            return(min(min_num))
+
+if __name__ == '__main__':
+    print("Example:")
+    print(nearest_value({4,8,10,11,12,17}, 9))
+
+    # These "asserts" are used for self-checking and not for an auto-testing
+    assert nearest_value({4, 7, 10, 11, 12, 17}, 9) == 10
+    assert nearest_value({4, 7, 10, 11, 12, 17}, 8) == 7
+    assert nearest_value({4, 8, 10, 11, 12, 17}, 9) == 8
+    assert nearest_value({4, 9, 10, 11, 12, 17}, 9) == 9
+    assert nearest_value({4, 7, 10, 11, 12, 17}, 0) == 4
+    assert nearest_value({4, 7, 10, 11, 12, 17}, 100) == 17
+    assert nearest_value({5, 10, 8, 12, 89, 100}, 7) == 8
+    assert nearest_value({-1, 2, 3}, 0) == -1
+    print("Coding complete? Click 'Check' to earn cool rewards!")
