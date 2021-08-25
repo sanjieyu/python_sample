@@ -1,0 +1,348 @@
+from datetime import datetime, timedelta
+from typing import List, Optional, Union, Tuple
+
+def light_intervals(els: List[datetime], start_watching: Optional[datetime] = None,
+                    end_watching: Optional[datetime] = None, operating: Optional[timedelta] = None) -> int:
+    els.sort()
+    if start_watching is None: start_watching = datetime.min
+    if end_watching is None: end_watching = datetime.max
+    els.append(start_watching)
+    els.append(start_watching)
+    els.append(end_watching)
+    els.append(end_watching)
+    els.sort()
+    date_diffs = [(els[ i -1], els[i]) for i in range(1, len(els))]
+    even_date_diffs = [date_diffs[i] for i in range(len(date_diffs)) if (i % 2 == 0)]
+    if operating is not None: even_date_diffs = apply_operating(even_date_diffs, operating)
+    even_date_diffs = [even_date_diffs[i] for i in range(len(even_date_diffs))
+                       if even_date_diffs[i][0] >= start_watching and even_date_diffs[i][0] < end_watching
+                       and even_date_diffs[i][0] != even_date_diffs[i][1]]
+    return even_date_diffs
+
+def apply_operating(date_diffs, operating):
+    new_date_diffs = []
+    for date_diff in date_diffs:
+        if operating == 0: break
+        delta = abs(date_diff[1] - date_diff[0]).total_seconds()
+        delta = timedelta(0, delta)
+        if operating >= delta:
+            new_date_diffs.append(date_diff)
+            operating -= delta
+        else:
+            new_date_diffs.append((date_diff[0], date_diff[0] + operating))
+            break
+    return new_date_diffs
+
+def merge_intervals(intervals):
+    merged = []
+    while intervals != []:
+        if merged == []:
+            merged.append(list(intervals.pop(0)))
+            continue
+        new_elem = intervals.pop(0)
+        if new_elem[0] > merged[-1][1]: merged.append(list(new_elem))
+        elif new_elem[1] >= merged[-1][1]: merged[-1][1] = new_elem[1]
+    merged = list(map(lambda elem: tuple(elem), merged))
+    return merged
+
+def sum_light(els: List[Union[datetime, Tuple[datetime, int]]],
+              start_watching: Optional[datetime] = None,
+              end_watching: Optional[datetime] = None,
+              operating: Optional[timedelta] = None) -> int:
+    bulbs = {}
+    for elem in els:
+        if isinstance(elem, tuple): new_elem = elem
+        else: new_elem = (elem, 1)
+        if new_elem[1] not in bulbs:
+            bulbs[new_elem[1]] = []
+        bulbs[new_elem[1]].append(new_elem[0])
+    for key, value in bulbs.items():
+        bulbs[key] = light_intervals(value, start_watching, end_watching, operating)
+    intervals = []
+    for value in bulbs.values():
+        intervals.extend(value)
+    intervals.sort(key = lambda x: x[0])
+    merged_intervals = merge_intervals(intervals)
+    return sum \
+        ([abs(merged_intervals[i][1] - merged_intervals[i][0]).total_seconds() for i in range(len(merged_intervals))])
+        
+
+
+if __name__ == '__main__':
+    print("Example:")
+
+    print(sum_light([
+        (datetime(2015, 1, 12, 10, 0, 10), 3),
+        datetime(2015, 1, 12, 10, 0, 20),
+        (datetime(2015, 1, 12, 10, 0, 30), 3),
+        (datetime(2015, 1, 12, 10, 0, 30), 2),
+    ],
+    start_watching=datetime(2015, 1, 12, 10, 0, 10),
+    end_watching=datetime(2015, 1, 12, 10, 0, 30),
+    operating=timedelta(seconds=5)))
+
+    assert sum_light([
+        datetime(2015, 1, 12, 10, 0, 0),
+        (datetime(2015, 1, 12, 10, 0, 0), 2),
+        datetime(2015, 1, 12, 10, 0, 10),
+        (datetime(2015, 1, 12, 10, 1, 0), 2),
+    ]) == 60
+
+    assert sum_light([
+        datetime(2015, 1, 12, 10, 0, 0),
+        datetime(2015, 1, 12, 10, 0, 10),
+        (datetime(2015, 1, 12, 11, 0, 0), 2),
+        (datetime(2015, 1, 12, 11, 1, 0), 2),
+    ]) == 70
+
+    assert sum_light([
+        datetime(2015, 1, 12, 10, 0, 20),
+        (datetime(2015, 1, 12, 10, 0, 30), 2),
+        datetime(2015, 1, 12, 10, 0, 40),
+        (datetime(2015, 1, 12, 10, 0, 50), 2),
+    ]) == 30
+    
+    assert sum_light([
+        (datetime(2015, 1, 12, 10, 0, 10), 3),
+        datetime(2015, 1, 12, 10, 0, 20),
+        (datetime(2015, 1, 12, 10, 0, 30), 3),
+        (datetime(2015, 1, 12, 10, 0, 30), 2),
+        datetime(2015, 1, 12, 10, 0, 40),
+        (datetime(2015, 1, 12, 10, 0, 50), 2),
+    ]) == 40
+
+    assert sum_light([
+        (datetime(2015, 1, 12, 10, 0, 10), 3),
+        datetime(2015, 1, 12, 10, 0, 20),
+        (datetime(2015, 1, 12, 10, 0, 30), 3),
+        (datetime(2015, 1, 12, 10, 0, 30), 2),
+        datetime(2015, 1, 12, 10, 0, 40),
+        (datetime(2015, 1, 12, 10, 0, 50), 2),
+        (datetime(2015, 1, 12, 10, 1, 0), 3),
+        (datetime(2015, 1, 12, 10, 1, 20), 3),
+    ]) == 60
+
+    assert sum_light([
+        datetime(2015, 1, 12, 10, 0, 0),
+        (datetime(2015, 1, 12, 10, 0, 0), 2),
+        datetime(2015, 1, 12, 10, 0, 10),
+        (datetime(2015, 1, 12, 10, 1, 0), 2),
+    ], datetime(2015, 1, 12, 10, 0, 50)) == 10
+    
+    assert sum_light([
+        datetime(2015, 1, 12, 10, 0, 20),
+        (datetime(2015, 1, 12, 10, 0, 30), 2),
+        datetime(2015, 1, 12, 10, 0, 40),
+        (datetime(2015, 1, 12, 10, 0, 50), 2),
+    ], datetime(2015, 1, 12, 10, 0, 30)) == 20
+    
+    assert sum_light([
+        datetime(2015, 1, 12, 10, 0, 20),
+        (datetime(2015, 1, 12, 10, 0, 30), 2),
+        datetime(2015, 1, 12, 10, 0, 40),
+        (datetime(2015, 1, 12, 10, 0, 50), 2),
+    ], datetime(2015, 1, 12, 10, 0, 20)) == 30
+    
+    assert sum_light([
+        datetime(2015, 1, 12, 10, 0, 20),
+        (datetime(2015, 1, 12, 10, 0, 30), 2),
+        datetime(2015, 1, 12, 10, 0, 40),
+        (datetime(2015, 1, 12, 10, 0, 50), 2),
+    ], datetime(2015, 1, 12, 10, 0, 10)) == 30
+    
+    assert sum_light([
+        datetime(2015, 1, 12, 10, 0, 20),
+        (datetime(2015, 1, 12, 10, 0, 30), 2),
+        datetime(2015, 1, 12, 10, 0, 40),
+        (datetime(2015, 1, 12, 10, 0, 50), 2),
+    ], datetime(2015, 1, 12, 10, 0, 50)) == 0
+    
+    assert sum_light([
+        (datetime(2015, 1, 12, 10, 0, 10), 3),
+        datetime(2015, 1, 12, 10, 0, 20),
+        (datetime(2015, 1, 12, 10, 0, 30), 3),
+        (datetime(2015, 1, 12, 10, 0, 30), 2),
+        datetime(2015, 1, 12, 10, 0, 40),
+        (datetime(2015, 1, 12, 10, 0, 50), 2),
+    ], datetime(2015, 1, 12, 10, 0, 30)) == 20
+    
+    assert sum_light([
+        (datetime(2015, 1, 12, 10, 0, 10), 3),
+        datetime(2015, 1, 12, 10, 0, 20),
+        (datetime(2015, 1, 12, 10, 0, 30), 3),
+        (datetime(2015, 1, 12, 10, 0, 30), 2),
+        datetime(2015, 1, 12, 10, 0, 40),
+        (datetime(2015, 1, 12, 10, 0, 50), 2),
+    ], datetime(2015, 1, 12, 10, 0, 20)) == 30
+    
+    assert sum_light([
+        (datetime(2015, 1, 12, 10, 0, 10), 3),
+        datetime(2015, 1, 12, 10, 0, 20),
+        (datetime(2015, 1, 12, 10, 0, 30), 3),
+        (datetime(2015, 1, 12, 10, 0, 30), 2),
+        datetime(2015, 1, 12, 10, 0, 40),
+        (datetime(2015, 1, 12, 10, 0, 50), 2),
+        (datetime(2015, 1, 12, 10, 1, 20), 2),
+        (datetime(2015, 1, 12, 10, 1, 40), 2),
+    ], datetime(2015, 1, 12, 10, 0, 20)) == 50
+    
+    assert sum_light([
+        datetime(2015, 1, 12, 10, 0, 0),
+        (datetime(2015, 1, 12, 10, 0, 0), 2),
+        datetime(2015, 1, 12, 10, 0, 10),
+        (datetime(2015, 1, 12, 10, 1, 0), 2),
+    ], datetime(2015, 1, 12, 10, 0, 30), datetime(2015, 1, 12, 10, 1, 0)) == 30
+    
+    assert sum_light([
+        datetime(2015, 1, 12, 10, 0, 0),
+        (datetime(2015, 1, 12, 10, 0, 0), 2),
+        datetime(2015, 1, 12, 10, 0, 10),
+        (datetime(2015, 1, 12, 10, 1, 0), 2),
+    ], datetime(2015, 1, 12, 10, 0, 20), datetime(2015, 1, 12, 10, 1, 0)) == 40
+    
+    assert sum_light([
+        datetime(2015, 1, 12, 10, 0, 0),
+        (datetime(2015, 1, 12, 10, 0, 0), 2),
+        datetime(2015, 1, 12, 10, 0, 10),
+    ], datetime(2015, 1, 12, 10, 0, 0), datetime(2015, 1, 12, 10, 0, 30)) == 30
+    
+    assert sum_light([
+        (datetime(2015, 1, 12, 10, 0, 10), 3),
+        datetime(2015, 1, 12, 10, 0, 20),
+        (datetime(2015, 1, 12, 10, 0, 30), 3),
+        (datetime(2015, 1, 12, 10, 0, 30), 2),
+        datetime(2015, 1, 12, 10, 0, 40),
+        (datetime(2015, 1, 12, 10, 0, 50), 2),
+    ], datetime(2015, 1, 12, 10, 0, 0), datetime(2015, 1, 12, 10, 1, 0)) == 40
+    
+    assert sum_light([
+        (datetime(2015, 1, 12, 10, 0, 10), 3),
+        datetime(2015, 1, 12, 10, 0, 20),
+        (datetime(2015, 1, 12, 10, 0, 30), 3),
+        (datetime(2015, 1, 12, 10, 0, 30), 2),
+        datetime(2015, 1, 12, 10, 0, 40),
+        (datetime(2015, 1, 12, 10, 0, 50), 2),
+    ], datetime(2015, 1, 12, 10, 0, 0), datetime(2015, 1, 12, 10, 0, 10)) == 0
+    
+    assert sum_light([
+        (datetime(2015, 1, 12, 10, 0, 10), 3),
+        datetime(2015, 1, 12, 10, 0, 20),
+        (datetime(2015, 1, 12, 10, 0, 30), 3),
+        (datetime(2015, 1, 12, 10, 0, 30), 2),
+        datetime(2015, 1, 12, 10, 0, 40),
+        (datetime(2015, 1, 12, 10, 0, 50), 2),
+    ], datetime(2015, 1, 12, 10, 0, 10), datetime(2015, 1, 12, 10, 0, 20)) == 10
+    
+
+    assert sum_light([
+        (datetime(2015, 1, 12, 10, 0, 10), 3),
+        datetime(2015, 1, 12, 10, 0, 20),
+        (datetime(2015, 1, 12, 10, 0, 30), 3),
+        (datetime(2015, 1, 12, 10, 0, 30), 2),
+    ], datetime(2015, 1, 12, 10, 0, 10), datetime(2015, 1, 12, 10, 0, 20)) == 10
+    
+    assert sum_light([
+        (datetime(2015, 1, 12, 10, 0, 10), 3),
+        datetime(2015, 1, 12, 10, 0, 20),
+        (datetime(2015, 1, 12, 10, 0, 30), 3),
+        (datetime(2015, 1, 12, 10, 0, 30), 2),
+    ], datetime(2015, 1, 12, 10, 0, 10), datetime(2015, 1, 12, 10, 0, 30)) == 20    
+
+    assert sum_light(els=[
+        (datetime(2015, 1, 11, 0, 0, 0), 3),
+        datetime(2015, 1, 12, 0, 0, 0),
+        (datetime(2015, 1, 13, 0, 0, 0), 3),
+        (datetime(2015, 1, 13, 0, 0, 0), 2),
+        datetime(2015, 1, 14, 0, 0, 0),
+        (datetime(2015, 1, 15, 0, 0, 0), 2),
+    ], start_watching=datetime(2015, 1, 10, 0, 0, 0), end_watching=datetime(2015, 1, 16, 0, 0, 0)) == 345600
+
+    assert sum_light([
+        datetime(2015, 1, 12, 10, 0, 0),
+        datetime(2015, 1, 12, 10, 0, 10),
+    ], operating=timedelta(seconds=100)) == 10
+
+    assert sum_light([
+        datetime(2015, 1, 12, 10, 0, 0),
+        datetime(2015, 1, 12, 10, 0, 10),
+    ], operating=timedelta(seconds=5)) == 5
+
+    assert sum_light([
+        datetime(2015, 1, 12, 10, 0, 0),
+        datetime(2015, 1, 12, 10, 0, 10),
+        (datetime(2015, 1, 12, 10, 0, 0), 2),
+        (datetime(2015, 1, 12, 10, 1, 0), 2),
+    ], operating=timedelta(seconds=100)) == 60
+
+    assert sum_light([
+        datetime(2015, 1, 12, 10, 0, 0),
+        datetime(2015, 1, 12, 10, 0, 30),
+        (datetime(2015, 1, 12, 10, 0, 30), 2),
+        (datetime(2015, 1, 12, 10, 1, 0), 2),
+    ], operating=timedelta(seconds=100)) == 60
+
+    assert sum_light([
+        datetime(2015, 1, 12, 10, 0, 0),
+        datetime(2015, 1, 12, 10, 0, 30),
+        (datetime(2015, 1, 12, 10, 0, 30), 2),
+        (datetime(2015, 1, 12, 10, 1, 0), 2),
+    ], operating=timedelta(seconds=20)) == 40
+
+    assert sum_light([
+        (datetime(2015, 1, 12, 10, 0, 10), 3),
+        datetime(2015, 1, 12, 10, 0, 20),
+        (datetime(2015, 1, 12, 10, 0, 30), 3),
+        (datetime(2015, 1, 12, 10, 0, 30), 2),
+        datetime(2015, 1, 12, 10, 0, 40),
+        (datetime(2015, 1, 12, 10, 0, 50), 2),
+        (datetime(2015, 1, 12, 10, 1, 0), 3),
+        (datetime(2015, 1, 12, 10, 1, 20), 3),
+    ], operating=timedelta(seconds=10)) == 30
+
+    assert sum_light([
+        (datetime(2015, 1, 12, 10, 0, 10), 3),
+        datetime(2015, 1, 12, 10, 0, 20),
+        (datetime(2015, 1, 12, 10, 0, 30), 3),
+        (datetime(2015, 1, 12, 10, 0, 30), 2),
+        datetime(2015, 1, 12, 10, 0, 40),
+        (datetime(2015, 1, 12, 10, 0, 50), 2),
+        (datetime(2015, 1, 12, 10, 1, 20), 2),
+        (datetime(2015, 1, 12, 10, 1, 40), 2),
+    ], start_watching=datetime(2015, 1, 12, 10, 0, 20), operating=timedelta(seconds=100)) == 50
+
+    assert sum_light([
+        (datetime(2015, 1, 12, 10, 0, 10), 3),
+        datetime(2015, 1, 12, 10, 0, 20),
+        (datetime(2015, 1, 12, 10, 0, 30), 3),
+        (datetime(2015, 1, 12, 10, 0, 30), 2),
+        datetime(2015, 1, 12, 10, 0, 40),
+        (datetime(2015, 1, 12, 10, 0, 50), 2),
+        (datetime(2015, 1, 12, 10, 1, 20), 2),
+        (datetime(2015, 1, 12, 10, 1, 40), 2),
+    ], start_watching=datetime(2015, 1, 12, 10, 0, 20), operating=timedelta(seconds=10)) == 20
+
+    assert sum_light([
+        (datetime(2015, 1, 12, 10, 0, 10), 3),
+        datetime(2015, 1, 12, 10, 0, 20),
+        (datetime(2015, 1, 12, 10, 0, 30), 3),
+        (datetime(2015, 1, 12, 10, 0, 30), 2),
+    ], start_watching=datetime(2015, 1, 12, 10, 0, 10), end_watching=datetime(2015, 1, 12, 10, 0, 30),
+    operating=timedelta(seconds=20)) == 20
+
+    assert sum_light([
+        (datetime(2015, 1, 12, 10, 0, 10), 3),
+        datetime(2015, 1, 12, 10, 0, 20),
+        (datetime(2015, 1, 12, 10, 0, 30), 3),
+        (datetime(2015, 1, 12, 10, 0, 30), 2),
+    ], start_watching=datetime(2015, 1, 12, 10, 0, 10), end_watching=datetime(2015, 1, 12, 10, 0, 30),
+    operating=timedelta(seconds=10)) == 20
+
+    assert sum_light([
+        (datetime(2015, 1, 12, 10, 0, 10), 3),
+        datetime(2015, 1, 12, 10, 0, 20),
+        (datetime(2015, 1, 12, 10, 0, 30), 3),
+        (datetime(2015, 1, 12, 10, 0, 30), 2),
+    ], start_watching=datetime(2015, 1, 12, 10, 0, 10), end_watching=datetime(2015, 1, 12, 10, 0, 30),
+    operating=timedelta(seconds=5)) == 10
+
+    print("The forth mission in series is completed? Click 'Check' to earn cool rewards!")
